@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
         # Perform clustering
         # min_samples = 2 as each point only needs to group with the pts adjacent to it on the cable
-        lcp_data_with_labels: pd.DataFrame = LidarCableClustering.dbscan(lcp_data, min_samples=2, sample_frac=sample_frac)
+        lcp_data_with_labels: pd.DataFrame = LidarCableClustering.dbscan(lcp_data, min_samples=1, sample_frac=sample_frac)
 
         cluster_stats(pd.Series(lcp_data_with_labels["labels"]))
         plot_clusters(lcp_data_with_labels, pd.Series(lcp_data_with_labels["labels"]))
@@ -40,15 +40,5 @@ if __name__ == "__main__":
             curve_coef = LidarCableClustering.estimate_curvature_coefficient(subset)
             if curve_coef != -1:
                 curve_coefs.append(curve_coef)
-
-        print(f"Estimated number of cables in LiDAR cloud points: {len(curve_coefs)}")
-
-        # for cluster in np.unique(lcp_data_with_labels["labels"][lcp_data_with_labels["labels"] != -1]):
-        #     subset = lcp_data.loc[lcp_data["label"] == cluster].drop("label", axis=1).reset_index(drop=True)
-
-        #     # Get estimated curvature value
-        #     curve_coef = catenary_3d(subset)
-        #     if curve_coef != -1:
-        #         curve_coefs.append(curve_coef)
-
-        # print(f"Estimated number of cables in LiDAR cloud points: {len(curve_coefs)}")
+                print(f"Cluster {cluster} has curvature coefficient: {curve_coef}")
+        print(f"\nEstimated number of cables in LiDAR cloud points: {len(curve_coefs)}")
