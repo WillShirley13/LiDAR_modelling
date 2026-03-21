@@ -1,0 +1,7 @@
+# Exlude data
+/data
+
+# Exlude case study info doc
+*.docx
+
+load_and_explore_lcp_data.py
