@@ -7,14 +7,17 @@ from model import LidarCableClustering
 from utils import cluster_stats, load_data, plot_clusters, plot_estimated_cable
 
 if __name__ == "__main__":
+    difficulty = None
     while True:
         difficulty = (
             input(
-                "\nPlease provide a dataset difficulty to model. \nOptions: \n- easy\n- medium\n- hard\n- extrahard\n(You may append _180, _90cw, _90acw to the difficulty to apply data augmentation. e.g. easy_180)\nInput: "
+                "\nPlease provide a dataset difficulty to model or 'exit' to quit. \nOptions: \n- easy\n- medium\n- hard\n- extrahard\n(You may append _180, _90cw, _90acw to the difficulty to apply data augmentation. e.g. easy_180)\nInput: "
             )
             .strip()
             .lower()
         )
+        if difficulty == "exit":
+            break
         sample_frac = input(
             """\nPlease provide value between 0.01 & 1.0. This is the size (%) of the sample used to estimate distance between neighbours.
             (Note: As sample_frac -> 1, clustering improves but time complexity -> O(n^2))\nInput:"""
@@ -75,3 +78,5 @@ if __name__ == "__main__":
         print(f"\nEstimated number of cables in LiDAR cloud points: {len(curve_coefs)}")
 
         plot_estimated_cable(all_estimated_cables, difficulty, sample_frac)
+
+    print("Thank you for using my Lidar Cable Clustering Model!")

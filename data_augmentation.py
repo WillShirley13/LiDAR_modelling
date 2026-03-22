@@ -1,4 +1,4 @@
-# Augment provided data by rotating,scaling etc to provide synthetic LiDAR cable points datasets
+# Augment provided data by rotating to provide synthetic LiDAR cable points datasets
 
 import pandas as pd
 
