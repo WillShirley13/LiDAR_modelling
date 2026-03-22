@@ -1,6 +1,3 @@
-# Exclude data
-/data
-
 # Exclude case study info doc
 *.docx
 
