@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import numpy as np
 import pandas as pd
 from scipy.optimize import curve_fit
@@ -6,38 +8,90 @@ from sklearn.decomposition import PCA
 
 class LidarCableClustering:
     """
-    Hold logic for computing
+    Holds logic for computing the curvature coefficient of a cable represented by a cluster of LiDAR cloud points as well
+    as estimating the number of cables present in a LiDAR cloud points dataset.
     """
 
-    @staticmethod
-    def dbscan(pts: pd.DataFrame, min_samples: int, sample_frac: float = 0.25) -> pd.DataFrame:
+    # Threshold for the alignment of a point to the principal component
+    ALLIGNMENT_THRESHOLD: float
+    # Minimum and maximum curvature coefficients for a cable
+    MIN_CURVATURE_COEFFICIENT: int
+    MAX_CURVATURE_COEFFICIENT: int
+    # Scale factor for the nearest neighbour distance
+    NEIGHBOUR_DISTANCE_SCALE_FACTOR: int
+    # Random state for the sample
+    RANDOM_STATE: int
+    # Initial guess for the curvature coefficient
+    INITIAL_CURVATURE_COEFFICIENT_GUESS: int
+    # Number of points to sample for the nearest neighbour distance
+    SAMPLE_FRACTION: float
+    # Minimum number of points within eps distance from current point for current point to be a core point
+    MIN_SAMPLES: int
+
+    def __init__(
+        self,
+        lcp_data: pd.DataFrame,
+        allignment_threshold: float = 0.9,
+        min_curvature_coefficient: int = 100,
+        max_curvature_coefficient: int = 10000,
+        neighbour_distance_scale_factor: int = 2,
+        random_state: int = 56,
+        initial_curvature_coefficient_guess: int = 300,
+        sample_fraction: float = 0.4,
+        min_samples: int = 2,
+    ):
+        """
+        Initialises the LidarCableClustering class.
+        Args:
+            - lcp_data (pd.DataFrame): The LiDAR cloud point data.
+            - allignment_threshold (float): The threshold for the alignment of a point to the principal component.
+            - min_curvature_coefficient (int): The minimum curvature coefficient for a cable.
+            - max_curvature_coefficient (int): The maximum curvature coefficient for a cable.
+            - neighbour_distance_scale_factor (int): The scale factor for the nearest neighbour distance.
+            - random_state (int): The random state for the sample.
+            - initial_curvature_coefficient_guess (int): The initial guess for the curvature coefficient.
+            - sample_fraction (float): The fraction of the data to sample for the nearest neighbour distance.
+              (Note: As sample_frac -> 1, clustering improves but time complexity -> O(n^2)).
+            - initial_curvature_coefficient_guess (int): The initial guess for the curvature coefficient.
+            - min_samples (int): The minimum number of points within eps distance from current point for current point to be a core point.
+        """
+        self.lcp_data = lcp_data
+        self.ALLIGNMENT_THRESHOLD = allignment_threshold
+        self.MIN_CURVATURE_COEFFICIENT = min_curvature_coefficient
+        self.MAX_CURVATURE_COEFFICIENT = max_curvature_coefficient
+        self.NEIGHBOUR_DISTANCE_SCALE_FACTOR = neighbour_distance_scale_factor
+        self.RANDOM_STATE = random_state
+        self.INITIAL_CURVATURE_COEFFICIENT_GUESS = initial_curvature_coefficient_guess
+        self.SAMPLE_FRACTION = sample_fraction
+        self.MIN_SAMPLES = min_samples
+
+    def dbscan(self) -> pd.DataFrame:
         """
         Typical DBSCAN implementation with additonal validation that members of clusters cannot sit ~perpendicular
         to one another in relation to the direction of the first principle component (PC1) of the dataset. That is,
         if the direction from point A -> B does sit ~perpendicular to PC1's direction, the points are likely
         members of different cables.
-        Args:
-            pts (pd.DataFrame): LiDAR cloud point data with columns x, y, z.
-            min_samples (int): Minimum number of points within eps distance from current point for current point
-            to be a core point.
-            sample_frac (float): Fraxtion of dataset to be use in sample. As sample_frac -> 1, time complexity -> O(n^2).
         Returns:
-            pd.DataFrame: The original pts DataFrame with an additional 'labels' column.
+            pd.DataFrame: The original lcp_data DataFrame with an additional 'labels' column.
         """
-        coords = pts[["x", "y", "z"]].to_numpy()
+        coords = self.lcp_data[["x", "y", "z"]].to_numpy()
         n = len(coords)
         labels = np.full(n, -1)  # -1 = unvisited/noise
         cluster_id = 0
+        alignment_threshold = self.ALLIGNMENT_THRESHOLD
+        min_samples = self.MIN_SAMPLES
+
+        # Get principal component of dataset
         pc1 = LidarCableClustering._get_principal_component(coords)
 
-        # Maximum distance between two points for them to be considered in the same cluseter
-        eps = LidarCableClustering._max_distance_to_nearest_neighbor(lcp_data=pts, sample_frac=sample_frac)
+        # Maximum distance between two points for them to be considered in the same cluster
+        eps = self._max_distance_to_nearest_neighbour()
 
         def region_query(idx):
             """
             Finds all points within neighbourhood of current point
             Args:
-                idx (_type_): idx of the current point being inspected for neighbours
+                idx (int): idx of the current point being inspected for neighbours
 
             Returns:
                 np.ndarray: Array of all points within eps distance from current point
@@ -61,9 +115,9 @@ class LidarCableClustering:
 
             on_same_cable = []
             for idx in neighbour_idxs:
-                # Verify if the vector pointing from pts[current_point_idx] (current point)
-                # to pts[idx] (neighbour) is ~perpendicular to PC1. If so, neighbour
-                # is not on the same cable as pts[current_point_idx].
+                # Verify if the vector pointing from lcp_data[current_point_idx] (current point)
+                # to lcp_data[idx] (neighbour) is ~perpendicular to PC1. If so, neighbour
+                # is not on the same cable as lcp_data[current_point_idx].
 
                 # Skip if neighbour is the current point. Can't be neighbour to itself.
                 if idx == current_point_idx:
@@ -78,7 +132,7 @@ class LidarCableClustering:
                 # value so it reflects direction rather than magnitude.
                 alignment = np.dot(direction_to_neighbor, pc1) / np.linalg.norm(direction_to_neighbor)
                 # if neighbour not aligned with direction of pc1, exclude from neighbours.
-                if np.abs(alignment) > 0.9:
+                if np.abs(alignment) > alignment_threshold:
                     on_same_cable.append(idx)
             return np.array(on_same_cable)
 
@@ -110,7 +164,8 @@ class LidarCableClustering:
 
             cluster_id += 1
 
-        return pts.assign(labels=labels)
+        # Return original data with cluster labels column
+        return self.lcp_data.assign(labels=labels)
 
     @staticmethod
     def _get_principal_component(lcp_data: np.ndarray) -> np.ndarray:
@@ -125,46 +180,44 @@ class LidarCableClustering:
         pca.fit(lcp_data)
         return np.array(pca.components_[0])
 
-    @staticmethod
-    def _max_distance_to_nearest_neighbor(lcp_data: pd.DataFrame, sample_frac: float = 0.25) -> float:
+    def _max_distance_to_nearest_neighbour(self) -> float:
         """
         Calculates the average distance to the nearest neighbor, using a random subset of data.
-        Avoids O(n^2) search time and provides general estimate of distance between neigbours.
+        Avoids O(n^2) search time and provides general estimate of distance between neighbours.
         To act as eps value for dbscan. Important: Assumes that in general nearest neighbour will be member
         of same cable.
-        Args:
-            lcp_data (pd.DataFrame): The full dataset of data to calculate the average distance to the nearest neighbor of.
-            sample_frac (float): Fraction of dataset to be use in sample. As sample_frac -> 1, time complexity -> O(n^2).
         Returns:
             float - A scaled version of max distance to nearest neighbour found.
         """
-        lcp_sample = lcp_data.sample(frac=sample_frac, random_state=50)
+        lcp_sample = self.lcp_data.sample(frac=self.SAMPLE_FRACTION, random_state=self.RANDOM_STATE)
 
         nearest_neighbor_distances = []
         for idx, p in lcp_sample.iterrows():
             # Vectorised nearest neighbour check
             # Remove current point from consideration w/ drop()
-            nearest_neighbor_distance = np.min(np.linalg.norm(lcp_data.drop(idx).values - np.array([p.x, p.y, p.z]), axis=1))
+            nearest_neighbor_distance = np.min(np.linalg.norm(self.lcp_data.drop(idx).values - np.array([p.x, p.y, p.z]), axis=1))
             nearest_neighbor_distances.append(nearest_neighbor_distance)
 
         # NOTE: In given time, could not find best way to dynamically scale neighbour distance.
         # Current value appropriate for given datasets, may not generalise well.
-        return np.max(nearest_neighbor_distances) * 2
+        return np.max(nearest_neighbor_distances) * self.NEIGHBOUR_DISTANCE_SCALE_FACTOR
 
-    @staticmethod
-    def estimate_curvature_coefficient(cluster: pd.DataFrame, verbose: bool = False) -> float:
+    def estimate_curvature_coefficient(self, cluster: pd.DataFrame, verbose: bool = False) -> Tuple[float, pd.DataFrame | None]:
         """
         Given a cluster of LiDAR cloud points, the function calculates an estimate for the
         curvature of the cable represented by the cluster points.
-        If the curvature value is <100 (too much slack) or >10,000 (no slack, essentially stright line), the cluster is considered erroneous and not conisdered to represent a cable.
+        If the curvature value is outside the configured bounds, the cluster is considered
+        erroneous and does not represent a cable.
         Args:
             cluster (pd.DataFrame): Set of cloud points for the given cluster
             verbose (bool, optional): Is set to True, will print info on calculation. Defaults to False.
 
         Returns:
-            bool: The curvature coefficient if it meets the requirements (see above), else -1
+            Tuple[float, pd.DataFrame]:
+                - index 0: The curvature coefficient if it meets the requirements (see above), else -1
+                - index 1: DataFrame containing the points estimating the cable curve, else None if coef invalid
         """
-        # Only numeric columns
+        # Remove labels column, if present
         coords = cluster[["x", "y", "z"]].to_numpy()
 
         # Find trough (lowest z) and it's index
@@ -184,8 +237,8 @@ class LidarCableClustering:
         min_point = cluster.iloc[min_idx]
         max_point = cluster.iloc[max_idx]
 
-        # NOTE: The following logic re flattening the 3d points to 2d was not my own
-        # In the time I had I could not solve this issue myself
+        # NOTE: The following logic re flattening the 3d points to 2d was not my own.
+        # In the time I had I could not solve this issue myself.
 
         # flatten cloud points. Replace x & y coordinates with l2 norm of dist(X_i, X_start) & dist(Y_i, Y_start)
         # SQRT((X_i - X_start)^2 + (Y_i - Y_start)^2))
@@ -201,12 +254,12 @@ class LidarCableClustering:
         # Value of y at trough
         y0 = lcp_flat.iloc[trough_idx]["y"]
 
-        # Wrap catenary fomrula in func
+        # Wrap catenary formula in func
         def catenary_model(x, c):
             return y0 + c * (np.cosh((x - x0) / c) - 1)
 
         # Perform the fit
-        popt, pcov = curve_fit(catenary_model, lcp_flat["x"], lcp_flat["y"], p0=[1000])  # p0 = initial guess for curvature 'c'
+        popt, _ = curve_fit(catenary_model, lcp_flat["x"], lcp_flat["y"], p0=[self.INITIAL_CURVATURE_COEFFICIENT_GUESS])
 
         # Curvature coefficient, c
         c_final = popt[0]
@@ -219,8 +272,23 @@ class LidarCableClustering:
             print()
             print(f"Calculated Curvature (c): {c_final:.4f}")
 
-        # validate curvature coeficient is a reasoable value
-        if 100 < c_final < 10000:
-            return c_final
+        # validate curvature coeficient is a reasonable value
+        if self.MIN_CURVATURE_COEFFICIENT < c_final < self.MAX_CURVATURE_COEFFICIENT:
+            # get flattened x,y values to get estimated z value via catenary_model()
+            dist_from_start = lcp_flat["x"]
+            estimated_z_values = catenary_model(dist_from_start, c_final)
+
+            # Sort values for plotting line later
+            # Line plotting none sequential data points causes zig-zag line
+            sort_idx = dist_from_start.argsort()
+            # Df containing og x & y values, with estimated z values.
+            estimated_cable = pd.DataFrame(
+                {
+                    "x": cluster["x"].iloc[sort_idx].values,
+                    "y": cluster["y"].iloc[sort_idx].values,
+                    "z": estimated_z_values.iloc[sort_idx].values,
+                }
+            )
+            return (c_final, estimated_cable)
         else:
-            return -1
+            return (-1, None)

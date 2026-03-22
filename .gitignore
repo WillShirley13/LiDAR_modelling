@@ -1,7 +1,11 @@
-# Exlude data
+# Exclude data
 /data
 
-# Exlude case study info doc
+# Exclude case study info doc
 *.docx
 
-load_and_explore_lcp_data.py
+# Exclude venv
+venv/
+
+# Exclude cluster results
+results/clusters

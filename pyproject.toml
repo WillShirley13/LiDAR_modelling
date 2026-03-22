@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lidar-cable-clustering"
+version = "0.1.0"
+description = "Clustering of LiDAR cable points to estimate the number of cables in a dataset"
+authors = [
+    { name = "William Shirley" }
+]
+dependencies = [
+    "numpy",
+    "pandas",
+    "matplotlib",
+    "scikit-learn",
+    "scipy",
+]
