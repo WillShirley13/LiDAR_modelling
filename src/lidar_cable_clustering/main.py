@@ -1,9 +1,15 @@
 import pandas as pd
 
-from model import LidarCableClustering
-from utils import cluster_stats, load_data, plot_clusters, plot_estimated_cable
+from lidar_cable_clustering.model import LidarCableClustering
+from lidar_cable_clustering.utils import (
+    cluster_stats,
+    load_data,
+    plot_clusters,
+    plot_estimated_cable,
+)
 
-if __name__ == "__main__":
+
+def main():
     difficulty = None
     while True:
         difficulty = (
@@ -67,3 +73,7 @@ if __name__ == "__main__":
         plot_estimated_cable(result.estimated_cables, difficulty, sample_frac)
 
     print("Thank you for using my Lidar Cable Clustering Model!")
+
+
+if __name__ == "__main__":
+    main()

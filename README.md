@@ -23,7 +23,7 @@ Once clusters have been indentified, the catenary constant is estimated by flatt
 ```bash
 git clone https://github.com/WillShirley13/LiDAR_modelling.git
 cd LiDAR_modelling
-pip install .
+pip install -e .
 
 main.py can be executed to run the model on a desired dataset. The user can input the name of the  dataset they wish to model and provide the sample size used to estimate the distance between neighbours.
 

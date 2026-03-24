@@ -1,6 +1,12 @@
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+DATA_DIR = PROJECT_ROOT / "data"
+RESULTS_DIR = PROJECT_ROOT / "results"
 
 
 def load_data(difficulty: str) -> pd.DataFrame:
@@ -17,11 +23,11 @@ def load_data(difficulty: str) -> pd.DataFrame:
     augmentation_exts = ("_180", "_90cw", "_90acw")
 
     if difficulty in base_difficulties:
-        return pd.read_parquet(f"data/lidar_cable_points_{difficulty}.parquet").reset_index(drop=True)
+        return pd.read_parquet(DATA_DIR / f"lidar_cable_points_{difficulty}.parquet").reset_index(drop=True)
 
     for suffix in augmentation_exts:
         if difficulty.endswith(suffix) and difficulty[: -len(suffix)] in base_difficulties:
-            return pd.read_parquet(f"data/synthetic_data/lidar_cable_points_{difficulty}.parquet").reset_index(drop=True)
+            return pd.read_parquet(DATA_DIR / f"synthetic_data/lidar_cable_points_{difficulty}.parquet").reset_index(drop=True)
 
     raise ValueError(f"Invalid difficulty provided: '{difficulty}'")
 
@@ -70,7 +76,7 @@ def plot_clusters(lcp_data: pd.DataFrame, labels: pd.Series, difficulty: str | N
     ax.set_ylabel("Y")
     ax.set_zlabel("Z")
     if difficulty and sample_frac:
-        plt.savefig(f"results/clusters/{difficulty}_clusters_with_{sample_frac}_sample.png")
+        plt.savefig(RESULTS_DIR / f"clusters/{difficulty}_clusters_with_{sample_frac}_sample.png")
     ax.legend()
     ax.set_title(f"Clusters for {difficulty} with {sample_frac} sample")
 
@@ -96,7 +102,7 @@ def plot_estimated_cable(estimated_cables: pd.DataFrame, difficulty: str | None 
     ax.set_ylabel("Y")
     ax.set_zlabel("Z")
     if difficulty and sample_frac:
-        plt.savefig(f"results/identified_cables/{difficulty}_estimated_with_{sample_frac}_sample.png")
+        plt.savefig(RESULTS_DIR / f"identified_cables/{difficulty}_estimated_with_{sample_frac}_sample.png")
     ax.legend()
     ax.set_title(f"Estimated cables for {difficulty} with {sample_frac} sample")
     plt.show()
