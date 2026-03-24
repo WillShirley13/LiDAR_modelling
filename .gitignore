@@ -6,3 +6,6 @@ venv/
 
 # Exclude cluster results
 results/clusters
+
+# Exclude egg info
+*.egg-info/

@@ -44,12 +44,16 @@ main.py can be directly executed to run the model on a desired dataset. The user
 
 ```
 LiDAR_modelling/
-├── main.py                 # Entry point for running model on desired dataset
-├── model.py                # Model definition, logic and training
-├── utils.py                # Helper functions
-├── data_augmentation.py    # Data augmentation
-├── data/                   # Input datasets
-└── results/                # Output visualisations
+├── pyproject.toml                          # Project config & dependencies
+├── src/
+│   └── lidar_cable_clustering/
+│       ├── __init__.py
+│       ├── main.py                         # Entry point for running model on desired dataset
+│       ├── model.py                        # Model definition, logic and training
+│       ├── utils.py                        # Helper functions
+│       └── data_augmentation.py            # Data augmentation
+├── data/                                   # Input datasets
+└── results/                                # Output visualisations
 ```
 
 ## Example Results
