@@ -23,12 +23,22 @@ Once clusters have been indentified, the catenary constant is estimated by flatt
 ```bash
 git clone https://github.com/WillShirley13/LiDAR_modelling.git
 cd LiDAR_modelling
-pip install -e .
-
-main.py can be executed to run the model on a desired dataset. The user can input the name of the  dataset they wish to model and provide the sample size used to estimate the distance between neighbours.
-
-Note: main.py expects the dataset to be in the data/ directory in the root of the project and to be a parquet file.
+python -m venv venv
+venv\Scripts\activate
+pip install .
 ```
+
+### Running the model
+
+From the root directory, run:
+
+```bash
+lidar-cable-clustering
+```
+
+(Note: in order to run this command, the datasets must be in root/data/)
+
+main.py can be directly executed to run the model on a desired dataset. The user can input the name of the dataset they wish to model and provide the sample size used to estimate the distance between neighbours.
 
 ## Project Structure
 
