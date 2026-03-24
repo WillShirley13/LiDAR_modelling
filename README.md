@@ -14,7 +14,7 @@ Once clusters have been indentified, the catenary constant is estimated by flatt
 
 ### Current Limitations
 
-- \_max_distance_to_nearest_neighbour() uses a crude approach to estimating the distance between neighbours (the value provided as the eps param to dbscan). As the sample size used within the method approaches 100%, the process requires O(n^2) runtime.
+- \_max_distance_to_nearest_neighbour() uses a crude approach to estimating the distance (is susceptible to outliers) between neighbours (the value provided as the eps param to dbscan). The method assume no outliers are present in the data set and all datapoints are members of a cable. Furthermore, As the sample size used within the method approaches 100%, the process requires O(n^2) runtime.
 - Currently, caternary estimations that geometrically overlap are not recongised as being the same cable. As such, cables can be misidentified as >1 cable. Given more time, I believe this could be improved by checking for overlapping values within the estimated cables using the found curvature coefficeints.
 - On the provided datasets, PC1 will always point along the direction of the cables. However, should a cable have sufficient slack, the direction of most variance could flip along the z-axis instead, invalidating the filtering approach.
 
@@ -24,6 +24,10 @@ Once clusters have been indentified, the catenary constant is estimated by flatt
 git clone https://github.com/WillShirley13/LiDAR_modelling.git
 cd LiDAR_modelling
 pip install .
+
+main.py can be executed to run the model on a desired dataset. The user can input the name of the  dataset they wish to model and provide the sample size used to estimate the distance between neighbours.
+
+Note: main.py expects the dataset to be in the data/ directory in the root of the project and to be a parquet file.
 ```
 
 ## Project Structure
@@ -39,6 +43,8 @@ LiDAR_modelling/
 ```
 
 ## Example Results
+
+Showing the predicted cables present in the dataset.
 
 ![Estimated catenary for extrahard dataset](results/identified_cables/extrahard_estimated_with_0.4_sample.png)
 ![Estimated catenary for easy dataset](results/identified_cables/easy_estimated_with_0.3_sample.png)

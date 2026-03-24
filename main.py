@@ -1,6 +1,3 @@
-from typing import Dict
-
-import numpy as np
 import pandas as pd
 
 from model import LidarCableClustering
@@ -46,6 +43,8 @@ if __name__ == "__main__":
             continue
         try:
             sample_frac = float(sample_frac)
+            if 0 > sample_frac > 1:
+                raise ValueError("Invalid sample size input. Must be between 0.01 and 1.0. Enter again")
         except ValueError:
             print("Invalid sample size input. Must be between 0.01 and 1.0. Enter again")
             continue
@@ -53,30 +52,18 @@ if __name__ == "__main__":
         # Load in requested data
         lcp_data: pd.DataFrame = load_data(difficulty)
 
-        # Perform clustering
-        # min_samples = 2 as each point only needs to group with the pts adjacent to it on the cable
+        # Run full pipeline: clustering + curvature filtering
         model = LidarCableClustering(lcp_data, sample_fraction=sample_frac)
-        lcp_data_with_labels: pd.DataFrame = model.dbscan()
+        result = model.identify_cables()
 
-        cluster_stats(pd.Series(lcp_data_with_labels["labels"]))
-        plot_clusters(lcp_data_with_labels, pd.Series(lcp_data_with_labels["labels"]), difficulty, sample_frac)
+        cluster_stats(result.labels)
+        plot_clusters(result.labeled_data, result.labels, difficulty, sample_frac)
 
-        # Store returned coefs. Key: cluster, value: curve coef
-        curve_coefs: Dict[int, float] = {}
-        all_estimated_cables = pd.DataFrame()
-        for cluster in np.unique(lcp_data_with_labels["labels"][lcp_data_with_labels["labels"] != -1]):
-            subset = lcp_data_with_labels.loc[lcp_data_with_labels["labels"] == cluster].drop("labels", axis=1).reset_index(drop=True)
+        for cable in result.cables:
+            print(f"\nCluster {cable['cluster_id'] + 1} has curvature coefficient: {cable['curvature_coef']}")
 
-            # Get estimated curvature value
-            (curve_coef, estimated_cable) = model.estimate_curvature_coefficient(subset)
-            if curve_coef != -1 and estimated_cable is not None:
-                curve_coefs[cluster] = curve_coef
-                estimated_cable["label"] = cluster
-                all_estimated_cables = pd.concat([all_estimated_cables, estimated_cable], ignore_index=True)
-                print(f"Cluster {cluster + 1} has curvature coefficient: {curve_coef}")
+        print(f"\nEstimated number of cables in LiDAR cloud points: {result.cable_count}")
 
-        print(f"\nEstimated number of cables in LiDAR cloud points: {len(curve_coefs)}")
-
-        plot_estimated_cable(all_estimated_cables, difficulty, sample_frac)
+        plot_estimated_cable(result.estimated_cables, difficulty, sample_frac)
 
     print("Thank you for using my Lidar Cable Clustering Model!")
