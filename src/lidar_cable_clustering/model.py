@@ -57,13 +57,13 @@ class LidarCableClustering:
     def __init__(
         self,
         lcp_data: pd.DataFrame,
-        allignment_threshold: float = 0.95,
+        allignment_threshold: float = 0.8,
         min_curvature_coefficient: int = 100,
         max_curvature_coefficient: int = 10000,
         neighbour_distance_scale_factor: float = 3,
         random_state: int = 59,
         initial_curvature_coefficient_guess: int = 300,
-        sample_fraction: float = 0.4,
+        sample_fraction: float = 0.2,
         min_samples: int = 2,
     ):
         """
@@ -166,7 +166,7 @@ class LidarCableClustering:
         def are_on_same_cable(current_point_idx: int, neighbour_idxs: np.ndarray, pc1: np.ndarray) -> np.ndarray:
             """
             Eliminates all neigbours suspected of being on a different cable.
-            The first principal component all points in the direction along the wires.
+            The first principal component always points (on the x & y dimensions) in the direction along the wires.
             If vector running from current point to neighbour is ~perpendicular to PC1
             direction, then neighbour likely part of different cable.
             Args:
@@ -177,28 +177,20 @@ class LidarCableClustering:
                 np.ndarray: Array containing the indexes of only those neighbours on the same cable as current point.
             """
 
-            on_same_cable = []
-            for idx in neighbour_idxs:
-                # Verify if the vector pointing from lcp_data[current_point_idx] (current point)
-                # to lcp_data[idx] (neighbour) is ~perpendicular to PC1. If so, neighbour
-                # is not on the same cable as lcp_data[current_point_idx].
+            # Get direction from current point to each potential neighbour
+            direction_to_neighbours = coords[:, 0:2][neighbour_idxs] - coords[:, 0:2][current_point_idx]
 
-                # Skip if neighbour is the current point. Can't be neighbour to itself.
-                if idx == current_point_idx:
-                    continue
+            norms = np.linalg.norm(direction_to_neighbours, axis=1)
+            # Mask for removing the current point from its own neighbours
+            not_self = norms > 0
+            valid_neighbour_idxs = neighbour_idxs[not_self]
 
-                # Vector describing direction from current point to neighbour.
-                direction_to_neighbour = coords[idx] - coords[current_point_idx]
-                # Alignment logic:
-                # The dot product between direction_to_neighbor and pc1 measures how aligned
-                # the two vectors are (whether they point in the same or opposite direction).
-                # Dividing by the l2 norm of direction_to_neighbor normalises this
-                # value so it reflects direction rather than magnitude.
-                alignment = np.dot(direction_to_neighbour, pc1) / np.linalg.norm(direction_to_neighbour)
-                # if neighbour not aligned with direction of pc1, exclude from neighbours.
-                if np.abs(alignment) > alignment_threshold:
-                    on_same_cable.append(idx)
-            return np.array(on_same_cable)
+            # Get normalised alignment of direction to neighbours and pc1
+            alignment = np.dot(direction_to_neighbours[not_self], pc1[0:2]) / (norms[not_self] * np.linalg.norm(pc1[0:2]))
+
+            # If alignment is greater than threshold, the neighbour is on the same cable as the current point
+            on_same_cable = np.abs(alignment) > alignment_threshold
+            return valid_neighbour_idxs[on_same_cable]
 
         for i in range(n):
             if labels[i] != -1:

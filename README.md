@@ -8,7 +8,7 @@ A python package providing modelling for identifying cables within LiDAR cloud d
 
 ## Modelling Approach
 
-The model uses an adapted version of DBSCAN whereby identified neighbours of a point are validated as being part of the same cable as the current point. This filtering process uses the first principal component (PC1) of the data set, which always points in the same direction as the cables (constraints to this assumption do exist). As such, if the direction from the current point to the neighbour in question is perpendicular to PC1, the neighbour is likely part of a different cable. Thus, clusters should form around individual cables.
+The model uses an adapted version of DBSCAN whereby identified neighbours of a point are validated as being part of the same cable as the current point. This filtering process uses the first principal component (PC1) of the data set, which always points in the same direction as the cables (constraints to this assumption do exist). As such, if the direction from the current point to the neighbour in question is perpendicular to PC1, the neighbour is likely part of a different cable. Thus, clusters should form around individual cables. During the direction filtering process, the dimensions are flattened to just the x and y coordinates to remove the sag of the cables pulling the direction of PC1 on the z-axis. Intuitvely, the direction alignment process now treat PC1 like a compass.
 
 Once clusters have been indentified, the catenary constant is estimated by flattening the x & y axis and using the 2d curve formula with flat(x, y) and z as the formula's x,y coordinates, respectively.
 
@@ -16,7 +16,7 @@ Once clusters have been indentified, the catenary constant is estimated by flatt
 
 - \_max_distance_to_nearest_neighbour() uses a crude approach to estimating the distance (is susceptible to outliers) between neighbours (the value provided as the eps param to dbscan). The method assume no outliers are present in the data set and all datapoints are members of a cable. Furthermore, As the sample size used within the method approaches 100%, the process requires O(n^2) runtime.
 - Currently, caternary estimations that geometrically overlap are not recongised as being the same cable. As such, cables can be misidentified as >1 cable. Given more time, I believe this could be improved by checking for overlapping values within the estimated cables using the found curvature coefficeints.
-- On the provided datasets, PC1 will always point along the direction of the cables. However, should a cable have sufficient slack, the direction of most variance could flip along the z-axis instead, invalidating the filtering approach.
+- On the provided datasets, PC1 will always point along the direction of the cables. However, should two cables be perfectly aligned on the x and y axis, the direction filtering process deteriorates and the model relies on eps to seperate the cables.
 
 ## Installation
 
@@ -60,5 +60,5 @@ LiDAR_modelling/
 
 Showing the predicted cables present in the dataset.
 
-![Estimated catenary for extrahard dataset](results/identified_cables/extrahard_estimated_with_0.4_sample.png)
-![Estimated catenary for easy dataset](results/identified_cables/easy_estimated_with_0.3_sample.png)
+![Estimated catenary for extrahard dataset](results/identified_cables/extrahard_estimated_with_0.2_sample.png)
+![Estimated catenary for easy dataset](results/identified_cables/easy_estimated_with_0.2_sample.png)

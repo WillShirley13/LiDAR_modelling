@@ -21,12 +21,7 @@ def main():
         )
         if difficulty == "exit":
             break
-        sample_frac = input(
-            """\nPlease provide value between 0.01 & 1.0. This is the size (%) of the sample used to estimate distance between neighbours.
-            (Note: As sample_frac -> 1, clustering improves but time complexity -> O(n^2))\nInput:"""
-        )
-
-        # Verify inputs
+        # Verify difficulty input
         if difficulty not in (
             "easy",
             "medium",
@@ -47,6 +42,13 @@ def main():
         ):
             print("Invalid difficulty. Enter again")
             continue
+
+        sample_frac = input(
+            """\nPlease provide value between 0.01 & 1.0 (Default = 0.2). This is the size (%) of the sample used to estimate distance between neighbours.
+            (Note: As sample_frac -> 1, clustering improves but time complexity -> O(n^2))\nInput:"""
+        )
+
+        # Verify sample input
         try:
             sample_frac = float(sample_frac)
             if 0 > sample_frac > 1:
