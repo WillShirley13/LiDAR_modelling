@@ -57,11 +57,11 @@ class LidarCableClustering:
     def __init__(
         self,
         lcp_data: pd.DataFrame,
-        allignment_threshold: float = 0.8,
+        allignment_threshold: float = 0.9,
         min_curvature_coefficient: int = 100,
         max_curvature_coefficient: int = 10000,
         neighbour_distance_scale_factor: float = 3,
-        random_state: int = 59,
+        random_state: int = 55,
         initial_curvature_coefficient_guess: int = 300,
         sample_fraction: float = 0.2,
         min_samples: int = 2,
@@ -245,7 +245,7 @@ class LidarCableClustering:
         Returns:
             float - A scaled version of max distance to nearest neighbour found.
         """
-        lcp_sample = self.lcp_data.sample(frac=self.SAMPLE_FRACTION)  # random_state=self.RANDOM_STATE)
+        lcp_sample = self.lcp_data.sample(frac=self.SAMPLE_FRACTION, random_state=self.RANDOM_STATE)
 
         nearest_neighbor_distances = []
         for idx, p in lcp_sample.iterrows():
